@@ -1,10 +1,14 @@
 #ifndef CONST_H
 #define CONST_H
 
-#define CN_INFINITY		10000000
-#define CN_LOG          "_log"
 #define CN_TIMELIMIT    60 // in seconds
+#define CN_AGENT_SIZE   sqrt(2.0)/4.0
+#define CN_K            3
 #define CN_OBSTL        1
+#define CN_EPSILON      1e-8
+#define CN_INFINITY		1e+8
+#define CN_LOG          "_log"
+
 
 //XML file tags
 #define CNS_TAG_ROOT "root"
