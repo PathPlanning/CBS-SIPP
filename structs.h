@@ -29,13 +29,12 @@ struct Node
     ~Node() { parent = nullptr; }
 };
 
-struct dNode
+struct Position
 {
-    double  i, j, g;
-    dNode(double _i = -1, double _j = -1, double _g = -1)
-        :i(_i), j(_j), g(_g) {}
-    dNode(const Node& node): i(node.i), j(node.j), g(node.g) {}
-
+    double  i, j, t;
+    Position(double _i = -1, double _j = -1, double _t = -1)
+        :i(_i), j(_j), t(_t) {}
+    Position(const Node& node): i(node.i), j(node.j), t(node.g) {}
 };
 
 struct Path

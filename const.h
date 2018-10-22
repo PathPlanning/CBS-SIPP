@@ -11,7 +11,7 @@
 
 
 //XML file tags
-#define CNS_TAG_ROOT "root"
+#define CNS_TAG_ROOT                "root"
     #define CNS_TAG_ALGORITHM       "algorithm"
     #define CNS_TAG_MAP             "map"
     #define CNS_TAG_AGENTS          "agents"

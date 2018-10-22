@@ -8,7 +8,7 @@ void SIPP::clear()
     constraints.clear();
     openSize = 0;
     path.cost = -1;
-    generate_moves(CN_K);
+    moves.generate(CN_K);
 
 }
 
@@ -22,73 +22,49 @@ double SIPP::dist(const Node& a, const Node& b)
     return std::sqrt(pow(a.i - b.i, 2) + pow(a.j - b.j, 2));
 }
 
-void SIPP::generate_moves(int k)
-{
-    moves_2k.clear();
-    if(k == 2)
-        moves_2k = {{0,1}, {1,0}, {-1,0},  {0,-1}};
-    else if(k == 3)
-        moves_2k = {{0,1}, {1,0}, {-1,0},  {0,-1},  {1,1},  {1,-1}, {-1,-1}, {-1,1}};
-    else if(k == 4)
-        moves_2k = {{0,1}, {1,0}, {-1,0},  {0,-1},  {1,1},  {1,-1}, {-1,-1}, {-1,1},
-                    {2,1}, {1,2}, {-2,-1}, {-1,-2}, {-2,1}, {-1,2}, {2,-1},  {1,-2}};
-    else
-        moves_2k = {{0,1}, {1,0}, {-1,0},  {0,-1},  {1,1},  {1,-1}, {-1,-1}, {-1,1},
-                    {2,1}, {1,2}, {-2,-1}, {-1,-2}, {-2,1}, {-1,2}, {2,-1},  {1,-2},
-                    {3,1}, {3,2}, {-3,-1}, {-3,-2}, {-3,1}, {-3,2}, {3,-1},  {3,-2},
-                    {1,3}, {2,3}, {-1,-3}, {-2,-3}, {-1,3}, {-2,3}, {1,-3},  {2,-3}};
-}
-
 void SIPP::find_successors(Node curNode, const Map &map, std::list<Node> &succs)
 {
     Node newNode;
-    for(auto move : moves_2k)
+    std::vector<Step> valid_moves = moves.get_valid(curNode.i, curNode.j, map);
+    for(auto move : valid_moves)
     {
-        newNode.i = curNode.i + move.first;
-        newNode.j = curNode.j + move.second;
-        if(map.cell_on_grid(newNode.i, newNode.j) && map.cell_is_traversable(newNode.i, newNode.j)
-                && los.checkLine(newNode.i, newNode.j, curNode.i, curNode.j, map, CN_AGENT_SIZE))
+        newNode.i = curNode.i + move.i;
+        newNode.j = curNode.j + move.j;
+        newNode.g = curNode.g + move.cost;
+        std::vector<std::pair<double, double>> intervals(0);
+        auto colls_it = collision_intervals.find(std::make_pair(newNode.i, newNode.j));
+        if(colls_it != collision_intervals.end())
         {
-            newNode.g = curNode.g + dist(newNode, curNode);
-            std::vector<std::pair<double, double>> intervals(0);
-            auto colls_it = collision_intervals.find(std::make_pair(newNode.i, newNode.j));
-            if(colls_it != collision_intervals.end())
+            std::pair<double, double> interval = {0, CN_INFINITY};
+            for(unsigned int i = 0; i < colls_it->second.size(); i++)
             {
-                std::pair<double, double> interval = {0, CN_INFINITY};
-                for(unsigned int i = 0; i < colls_it->second.size(); i++)
-                {
-                    interval.second = colls_it->second[i].first;
-                    intervals.push_back(interval);
-                    interval.first = colls_it->second[i].second;
-                }
-                interval.second = CN_INFINITY;
+                interval.second = colls_it->second[i].first;
                 intervals.push_back(interval);
+                interval.first = colls_it->second[i].second;
             }
-            else
-                intervals.push_back({newNode.g, CN_INFINITY});
-            auto cons_it = constraints.find(Move(curNode.g, newNode.g, curNode.i, curNode.j, newNode.i, newNode.j));
-            for(auto interval: intervals)
-            {
-                if(interval.second < newNode.g)
-                    continue;
-                if(interval.first > newNode.g)
-                    newNode.g = interval.first;
-                if(cons_it != constraints.end())
-                    for(unsigned int i = 0; i < cons_it->second.size(); i++)
-                    {
-                        //std::cout<<curNode.i<<" "<<curNode.j<<" "<<cons_it->second[i].t1<<" "<<cons_it->second[i].t2<<" "<<curNode.g<<" sipp\n";
-                        if(newNode.g - dist(newNode, curNode) + CN_EPSILON > cons_it->second[i].t1 && newNode.g - dist(newNode, curNode) < cons_it->second[i].t2)
-                        {
-                            newNode.g = cons_it->second[i].t2 + dist(curNode, newNode);
-                            //std::cout<<newNode.g<<" upd\n";
-                        }
-                    }
-                newNode.interval = interval;
-                if(newNode.g - dist(newNode, curNode) > curNode.interval.second || newNode.g > newNode.interval.second)
-                    continue;
-                newNode.f = newNode.g + h_values->get_value(newNode.i, newNode.j, agent.id);
-                succs.push_back(newNode);
-            }
+            interval.second = CN_INFINITY;
+            intervals.push_back(interval);
+        }
+        else
+            intervals.push_back({newNode.g, CN_INFINITY});
+        auto cons_it = constraints.find(Move(curNode.g, newNode.g, curNode.i, curNode.j, newNode.i, newNode.j));
+        for(auto interval: intervals)
+        {
+            if(interval.second < newNode.g)
+                continue;
+            if(interval.first > newNode.g)
+                newNode.g = interval.first;
+            if(cons_it != constraints.end())
+                for(unsigned int i = 0; i < cons_it->second.size(); i++)
+                {
+                    if(newNode.g - move.cost + CN_EPSILON > cons_it->second[i].t1 && newNode.g - move.cost < cons_it->second[i].t2)
+                        newNode.g = cons_it->second[i].t2 + move.cost;
+                }
+            newNode.interval = interval;
+            if(newNode.g - move.cost > curNode.interval.second || newNode.g > newNode.interval.second)
+                continue;
+            newNode.f = newNode.g + h_values->get_value(newNode.i, newNode.j, agent.id);
+            succs.push_back(newNode);
         }
     }
 }
@@ -111,6 +87,8 @@ Node SIPP::find_min(int size)
                     min = *open[i].begin();
             }
     }
+    open[min.i].pop_front();
+    openSize--;
     return min;
 }
 
@@ -183,14 +161,10 @@ void SIPP::reconstruct_path(Node curNode)
         if(fabs(path.nodes[j].g - path.nodes[i].g - dist(path.nodes[j], path.nodes[i])) > CN_EPSILON)
         {
             Node add = path.nodes[i];
-            //std::cout<<path.nodes[j].g<<" "<<path.nodes[i].g<<" "<<dist(path.nodes[j], path.nodes[i])<<"\n";
             add.g = path.nodes[j].g - dist(path.nodes[j], path.nodes[i]);
             path.nodes.emplace(path.nodes.begin() + j, add);
         }
     }
-    Node goal = path.nodes.back();
-    goal.g = CN_INFINITY;
-    //path.nodes.push_back(goal);
 }
 
 void SIPP::make_constraints(std::list<Constraint> &cons)
@@ -213,10 +187,10 @@ void SIPP::make_constraints(std::list<Constraint> &cons)
                         break;
                     if(interval.first < intervals[i].first + CN_EPSILON)
                     {
-                        if(interval.second + CN_EPSILON > intervals[i].first)//a
+                        if(interval.second + CN_EPSILON > intervals[i].first)
                         {
                             intervals[i].first = interval.first;
-                            if(interval.second + CN_EPSILON > intervals[i].second)//d
+                            if(interval.second + CN_EPSILON > intervals[i].second)
                                 intervals[i].second = interval.second;
                             inserted = true;
                             if(i != 0)
@@ -234,13 +208,13 @@ void SIPP::make_constraints(std::list<Constraint> &cons)
                         else
                         {
                             if(i != 0)
-                                if(intervals[i-1].second + CN_EPSILON > interval.first && intervals[i-1].second < interval.second + CN_EPSILON)//c
+                                if(intervals[i-1].second + CN_EPSILON > interval.first && intervals[i-1].second < interval.second + CN_EPSILON)
                                 {
                                     intervals[i-1].second = interval.second;
                                     inserted = true;
                                     break;
                                 }
-                            intervals.insert(intervals.begin() + i, interval);//b
+                            intervals.insert(intervals.begin() + i, interval);
                             inserted = true;
                         }
                     }
@@ -313,21 +287,7 @@ void SIPP::make_constraints(std::list<Constraint> &cons)
 Path SIPP::find_path(Agent agent, const Map &map, std::list<Constraint> cons, Heuristic* h_values)
 {
     this->clear();
-    //std::cout<<"find path\n";
     make_constraints(cons);
-    //std::cout<<constraints.size()<<"c_size\n";
-    if(cons.size() > 100000)
-    {
-        for(auto con:cons)
-            std::cout<<con.agent<<" "<<con.i1<<" "<<con.j1<<" "<<con.i2<<" "<<con.j2<<" "<<con.t1<<" "<<con.t2<<" \n";
-        std::cout<<std::endl;
-        for(auto it = collision_intervals.begin(); it != collision_intervals.end(); it++)
-        {
-            std::cout<<it->first.first<<" "<<it->first.second<<"\n";
-            for(int i=0; i<it->second.size(); i++)
-                std::cout<<it->second[i].first<<" "<<it->second[i].second<<" collsiion interval\n";
-        }
-    }
     this->h_values = h_values;
     this->agent = agent;
     open.resize(map.height);
@@ -347,14 +307,9 @@ Path SIPP::find_path(Agent agent, const Map &map, std::list<Constraint> cons, He
     while(openSize > 0)
     {
         curNode = find_min(map.height);
-        //if(agent.id == 5 && curNode.i==25 && curNode.j==31)
-        //    std::cout<<"   "<<curNode.g<<" "<<curNode.parent->g<<"   ";
-        open[curNode.i].pop_front();
-        openSize--;
         close.insert({curNode.i * map.width + curNode.j, curNode});
         if(curNode.i == agent.goal_i && curNode.j == agent.goal_j && curNode.interval.second == CN_INFINITY)
         {
-            //std::cout<<agent.id<<" "<<curNode.i<<" "<<curNode.j<<" "<<curNode.g<<" "<<curNode.interval.first<<" "<<curNode.interval.second<<"\n";
             pathFound = true;
             break;
         }
@@ -369,7 +324,7 @@ Path SIPP::find_path(Agent agent, const Map &map, std::list<Constraint> cons, He
             it->parent = parent;
             auto range = close.equal_range(it->i * map.width + it->j);
             for(auto i = range.first; i != range.second; i++)
-                if(i->second.interval.first <= it->interval.first && i->second.interval.second >= it->interval.second)
+                if(i->second.interval.first - CN_EPSILON < it->interval.first && i->second.interval.second + CN_EPSILON > it->interval.second)
                 {
                     has = true;
                     break;
@@ -381,11 +336,9 @@ Path SIPP::find_path(Agent agent, const Map &map, std::list<Constraint> cons, He
     }
     if (pathFound)
     {
-        //std::cout<<"path found\n";
         reconstruct_path(curNode);
         path.cost = curNode.g;
     }
-    //std::cout<<agent.id<<" "<<path.cost<<"\n";
     path.agentID = agent.id;
     return path;
 }

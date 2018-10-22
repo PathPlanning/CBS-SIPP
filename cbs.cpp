@@ -8,8 +8,8 @@ void CBS::init_root(const Map &map, const Task &task)
     for(int i = 0; i < task.get_agents_size(); i++)
     {
         Agent agent = task.get_agent(i);
-        path = planner.find_path(agent, map, {}, &h_values);
         h_values.count(map, agent);
+        path = planner.find_path(agent, map, {}, &h_values);
         root.paths.push_back(path);
         root.cost += path.cost;
     }
@@ -20,8 +20,7 @@ void CBS::init_root(const Map &map, const Task &task)
 
 Constraint CBS::get_constraint(int agent, Move move1, Move move2)
 {
-    double begin = move1.t1;
-    double startTimeA(move1.t1), endTimeA(move1.t2), startTimeB(move2.t1), endTimeB(move2.t2);
+    double begin(move1.t1), startTimeA(move1.t1), endTimeA(move1.t2), startTimeB(move2.t1), endTimeB(move2.t2);
     Vector2D A(move1.i1, move1.j1);
     Vector2D B(move2.i1, move2.j1);
     Vector2D VA((move1.i2 - move1.i1)/(move1.t2 - move1.t1), (move1.j2 - move1.j1)/(move1.t2 - move1.t1));
@@ -49,27 +48,25 @@ Constraint CBS::get_constraint(int agent, Move move1, Move move2)
         {
             if(move2.t2 == CN_INFINITY)
                 return Constraint(agent, begin, CN_INFINITY, move1.i1, move1.j1, move1.i2, move1.j2);
-            move1.t1 += 0.25;
-            move1.t2 += 0.25;
+            move1.t1 += 0.1;
+            move1.t2 += 0.1;
             continue;
         }
+
         Vector2D v(VA - VB);
         double a(v*v);
         double b(w*v);
-
         double dscr(b*b - a*c);
         if(dscr <= 0)
-        {
             break;
-        }
 
         double ctime = (b - sqrt(dscr))/a;
         if(ctime > -CN_EPSILON && ctime < std::min(endTimeB,endTimeA) - startTimeA + CN_EPSILON)
         {
             if(move2.t2 == CN_INFINITY)
                 return Constraint(agent, begin, CN_INFINITY, move1.i1, move1.j1, move1.i2, move1.j2);
-            move1.t1 += 0.25;
-            move1.t2 += 0.25;
+            move1.t1 += 0.1;
+            move1.t2 += 0.1;
             continue;
         }
         else
@@ -138,8 +135,8 @@ std::list<Constraint> CBS::get_constraints(CBS_Node *node, int agent_id)
 
 Conflict CBS::check_conflicts(std::vector<Path> &paths)
 {
-    dNode cur, check, conf;
-    std::vector<std::vector<dNode>> positions;
+    Position cur, check, conf;
+    std::vector<std::vector<Position>> positions;
     positions.resize(paths.size());
     for(int i = 0; i < paths.size(); i++)
     {
@@ -154,8 +151,8 @@ Conflict CBS::check_conflicts(std::vector<Path> &paths)
             check = paths[i].nodes[j-1];
             int di = cur.i - check.i;
             int dj = cur.j - check.j;
-            double dist = (cur.g - check.g)*10;
-            int steps = (cur.g - check.g)*10;
+            double dist = (cur.t - check.t)*10;
+            int steps = (cur.t - check.t)*10;
             if(dist - steps + part >= 1)
             {
                 steps++;
@@ -165,27 +162,27 @@ Conflict CBS::check_conflicts(std::vector<Path> &paths)
                 part += dist - steps;
             double stepi = double(di)/dist;
             double stepj = double(dj)/dist;
-            double curg = double(k)*0.1;
-            double curi = check.i + (curg - check.g)*di/(cur.g - check.g);
-            double curj = check.j + (curg - check.g)*dj/(cur.g - check.g);
+            double curt = double(k)*0.1;
+            double curi = check.i + (curt - check.t)*di/(cur.t - check.t);
+            double curj = check.j + (curt - check.t)*dj/(cur.t - check.t);
             conf.i = curi;
             conf.j = curj;
-            conf.g = curg;
-            if(curg <= cur.g)
+            conf.t = curt;
+            if(curt <= cur.t)
             {
                 positions[i].push_back(conf);
                 k++;
             }
-            while(curg <= cur.g)
+            while(curt <= cur.t)
             {
-                if(curg + 0.1 > cur.g)
+                if(curt + 0.1 > cur.t)
                     break;
                 curi += stepi;
                 curj += stepj;
-                curg += 0.1;
+                curt += 0.1;
                 conf.i = curi;
                 conf.j = curj;
-                conf.g = curg;
+                conf.t = curt;
                 positions[i].push_back(conf);
                 k++;
             }
@@ -194,7 +191,7 @@ Conflict CBS::check_conflicts(std::vector<Path> &paths)
         {
             conf.i = paths[i].nodes.back().i;
             conf.j = paths[i].nodes.back().j;
-            conf.g = paths[i].nodes.back().g;
+            conf.t = paths[i].nodes.back().g;
             positions[i].push_back(conf);
         }
     }
@@ -208,7 +205,7 @@ Conflict CBS::check_conflicts(std::vector<Path> &paths)
         {
             for(int j = i + 1; j < paths.size(); j++)
             {
-                dNode a, b;
+                Position a, b;
                 if(positions[i].size() > k)
                     a = positions[i][k];
                 else
@@ -221,22 +218,22 @@ Conflict CBS::check_conflicts(std::vector<Path> &paths)
                 {
                     Move move1, move2;
                     for(int p = 1; p < paths[i].nodes.size(); p++)
-                        if(paths[i].nodes[p-1].g <= a.g && paths[i].nodes[p].g >= a.g)
+                        if(paths[i].nodes[p-1].g <= a.t && paths[i].nodes[p].g >= a.t)
                             move1 = Move(paths[i].nodes[p-1], paths[i].nodes[p]);
                     for(int p = 1; p < paths[j].nodes.size(); p++)
-                        if(paths[j].nodes[p-1].g <= b.g && paths[j].nodes[p].g >= b.g)
+                        if(paths[j].nodes[p-1].g <= b.t && paths[j].nodes[p].g >= b.t)
                             move2 = Move(paths[j].nodes[p-1], paths[j].nodes[p]);
-                    if(a.g + CN_EPSILON < double(k/10))
+                    if(a.t + CN_EPSILON < double(k/10))
                     {
                         move1 = Move(paths[i].nodes.back(), paths[i].nodes.back());
                         move1.t2 = CN_INFINITY;
                     }
-                    if(b.g + CN_EPSILON < double(k/10))
+                    if(b.t + CN_EPSILON < double(k/10))
                     {
                         move2 = Move(paths[j].nodes.back(), paths[j].nodes.back());
                         move2.t2 = CN_INFINITY;
                     }
-                    return Conflict(i, j, move1, move2, a.g > b.g ? a.g : b.g);
+                    return Conflict(i, j, move1, move2, a.t > b.t ? a.t : b.t);
                 }
             }
         }

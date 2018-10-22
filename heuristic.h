@@ -6,14 +6,14 @@
 #include <vector>
 #include <unordered_map>
 #include "map.h"
-#include "lineofsight.h"
+#include "moves.h"
 
 class Heuristic
 {
     std::vector<std::vector<std::vector<double>>> h_values;
     std::vector<std::pair<int, int>> moves_2k;
     unsigned int openSize;
-    LineOfSight los;
+    Moves moves;
     std::vector<std::list<Node>> open;
     Node find_min(int size);
     void add_open(Node newNode);

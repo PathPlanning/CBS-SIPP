@@ -9,19 +9,7 @@ void Heuristic::init(int height, int width, int agents, int k)
         for(int j = 0; j < width; j++)
             h_values[i][j].resize(agents, -1);
     }
-    moves_2k.clear();
-    if(k == 2)
-        moves_2k = {{0,1}, {1,0}, {-1,0},  {0,-1}};
-    else if(k == 3)
-        moves_2k = {{0,1}, {1,0}, {-1,0},  {0,-1},  {1,1},  {1,-1}, {-1,-1}, {-1,1}};
-    else if(k == 4)
-        moves_2k = {{0,1}, {1,0}, {-1,0},  {0,-1},  {1,1},  {1,-1}, {-1,-1}, {-1,1},
-                    {2,1}, {1,2}, {-2,-1}, {-1,-2}, {-2,1}, {-1,2}, {2,-1},  {1,-2}};
-    else
-        moves_2k = {{0,1}, {1,0}, {-1,0},  {0,-1},  {1,1},  {1,-1}, {-1,-1}, {-1,1},
-                    {2,1}, {1,2}, {-2,-1}, {-1,-2}, {-2,1}, {-1,2}, {2,-1},  {1,-2},
-                    {3,1}, {3,2}, {-3,-1}, {-3,-2}, {-3,1}, {-3,2}, {3,-1},  {3,-2},
-                    {1,3}, {2,3}, {-1,-3}, {-2,-3}, {-1,3}, {-2,3}, {1,-3},  {2,-3}};
+    moves.generate(k);
 }
 
 void Heuristic::count(const Map& map, Agent agent)
@@ -37,25 +25,21 @@ void Heuristic::count(const Map& map, Agent agent)
         while(h_values[curNode.i][curNode.j][agent.id] >= 0 && openSize > 0);
         if(h_values[curNode.i][curNode.j][agent.id] < 0)
             h_values[curNode.i][curNode.j][agent.id] = curNode.g;
-        for(auto move: moves_2k)
+        std::vector<Step> valid_moves = moves.get_valid(curNode.i, curNode.j, map);
+        for(auto move: valid_moves)
         {
-            newNode.i = curNode.i + move.first;
-            newNode.j = curNode.j + move.second;
-            if(map.cell_on_grid(newNode.i, newNode.j) && map.cell_is_traversable(newNode.i, newNode.j)
-                    && los.checkLine(newNode.i, newNode.j, curNode.i, curNode.j, map, CN_AGENT_SIZE))
-            {
-                newNode.g = curNode.g + dist(newNode, curNode);
-                if(h_values[newNode.i][newNode.j][agent.id] < 0)
-                    add_open(newNode);
-            }
+            newNode.i = curNode.i + move.i;
+            newNode.j = curNode.j + move.j;
+            newNode.g = curNode.g + move.cost;
+            if(h_values[newNode.i][newNode.j][agent.id] < 0)
+                add_open(newNode);
         }
     }
 }
 
 void Heuristic::add_open(Node newNode)
 {
-    std::list<Node>::iterator iter;
-    for(iter = open[newNode.i].begin(); iter != open[newNode.i].end(); ++iter)
+    for(auto iter = open[newNode.i].begin(); iter != open[newNode.i].end(); ++iter)
     {
         if (iter->g > newNode.g)
         {
@@ -67,7 +51,7 @@ void Heuristic::add_open(Node newNode)
             return;
     }
     openSize++;
-    open[newNode.i].insert(iter, newNode);
+    open[newNode.i].push_back(newNode);
     return;
 }
 

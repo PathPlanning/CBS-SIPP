@@ -9,7 +9,7 @@ int main(int argc, const char *argv[])
     bool run_empty_grids = true;
     bool run_warehouse = false;
     int task_num = 100;
-    std::vector<int> agents_num = {32};
+    std::vector<int> agents_num = {16};
     std::string path = "instances/";
     if(run_empty_grids)
         path += "64x64_empty/";
