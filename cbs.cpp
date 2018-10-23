@@ -104,7 +104,6 @@ Solution CBS::find_solution(const Map &map, const Task &task)
         if(path.cost >= 0)
             tree.add_node(left);
 
-
         constraints = get_constraints(&node, conflict.agent2);
         constraint = get_constraint(conflict.agent2, conflict.move2, conflict.move1);
         constraints.push_back(constraint);
@@ -221,12 +220,6 @@ Conflict CBS::check_conflicts(std::vector<Path> &paths)
                     b = positions[j].back();
                 if(sqrt((a.i - b.i)*(a.i - b.i) + (a.j - b.j)*(a.j - b.j)) + CN_EPSILON < 2*CN_AGENT_SIZE)
                 {
-
-                    //std::cout<<a.i<<" "<<a.j<<" "<<b.i<<" "<<b.j<<" "<<k<<" collision\n";
-                    //std::cout<<positions[i].size()<<" "<<positions[j].size()<<" "<<k<<" sizes\n";
-                    //if(positions[i].size() == 86 && a.i==4 && a.j==8)
-                    //for(int h=0; h<positions[i].size(); h++)
-                    //    std::cout<<positions[i][h].i<<" "<<positions[i][h].j<<" "<<positions[i][h].t<<" pos\n";
                     Move move1, move2;
                     for(int p = 1; p < paths[i].nodes.size(); p++)
                         if(paths[i].nodes[p-1].g < a.t + CN_EPSILON && paths[i].nodes[p].g > a.t - CN_EPSILON)
