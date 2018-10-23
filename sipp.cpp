@@ -8,13 +8,6 @@ void SIPP::clear()
     constraints.clear();
     openSize = 0;
     path.cost = -1;
-    moves.generate(CN_K);
-
-}
-
-int SIPP::count_h_value(int i, int j, int goal_i, int goal_j)
-{
-    return sqrt(pow(i - goal_i,2) + pow(j - goal_j,2));
 }
 
 double SIPP::dist(const Node& a, const Node& b)
@@ -56,10 +49,8 @@ void SIPP::find_successors(Node curNode, const Map &map, std::list<Node> &succs)
                 newNode.g = interval.first;
             if(cons_it != constraints.end())
                 for(unsigned int i = 0; i < cons_it->second.size(); i++)
-                {
                     if(newNode.g - move.cost + CN_EPSILON > cons_it->second[i].t1 && newNode.g - move.cost < cons_it->second[i].t2)
                         newNode.g = cons_it->second[i].t2 + move.cost;
-                }
             newNode.interval = interval;
             if(newNode.g - move.cost > curNode.interval.second || newNode.g > newNode.interval.second)
                 continue;

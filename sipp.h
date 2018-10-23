@@ -11,8 +11,8 @@ class SIPP
 {
 public:
 
-    SIPP() { h_values = nullptr;}
-    ~SIPP() { }
+    SIPP() { moves.generate(CN_K); h_values = nullptr;}
+    ~SIPP() { h_values = nullptr; }
     Path find_path(Agent agent, const Map &map, std::list<Constraint> cons = {}, Heuristic *h_values = nullptr);
 
 private:
@@ -20,7 +20,6 @@ private:
     void find_successors(Node curNode, const Map &map, std::list<Node> &succs);
     void add_open(Node newNode);
     Node find_min(int size);
-    int  count_h_value(int i, int j, int goal_i, int goal_j);
     double dist(const Node& a, const Node& b);
     void reconstruct_path(Node curNode);
     void make_constraints(std::list<Constraint> &cons);

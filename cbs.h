@@ -1,20 +1,19 @@
 #ifndef CBS_H
 #define CBS_H
+#include <chrono>
 #include "structs.h"
 #include "map.h"
 #include "task.h"
 #include "sipp.h"
-#include <chrono>
 #include "heuristic.h"
 
 class CBS
 {
 public:
     CBS() {}
-    void make_cat(const std::vector<Path> &paths);
-    void update_cat(Path path, bool inc);
-    void init_root(const Map &map, const Task &task);
     Solution find_solution(const Map &map, const Task &task);
+private:
+    void init_root(const Map &map, const Task &task);
     std::list<Constraint> get_constraints(CBS_Node *node, int agent_id);
     Conflict check_conflicts(std::vector<Path> &paths);
     //int count_conflicts(std::vector<Path> &paths);

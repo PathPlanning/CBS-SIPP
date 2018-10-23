@@ -58,7 +58,9 @@ Constraint CBS::get_constraint(int agent, Move move1, Move move2)
         double b(w*v);
         double dscr(b*b - a*c);
         if(dscr <= 0)
+        {
             break;
+        }
 
         double ctime = (b - sqrt(dscr))/a;
         if(ctime > -CN_EPSILON && ctime < std::min(endTimeB,endTimeA) - startTimeA + CN_EPSILON)
@@ -70,15 +72,19 @@ Constraint CBS::get_constraint(int agent, Move move1, Move move2)
             continue;
         }
         else
+        {
             break;
+        }
     }
     return Constraint(agent, begin, move1.t1, move1.i1, move1.j1, move1.i2, move1.j2);
 }
 
+
 Solution CBS::find_solution(const Map &map, const Task &task)
 {
-    CBS_Node node;
     auto t = std::chrono::high_resolution_clock::now();
+    this->init_root(map, task);
+    CBS_Node node;
     std::chrono::duration<double> time_spent;
     do
     {
@@ -98,6 +104,7 @@ Solution CBS::find_solution(const Map &map, const Task &task)
         if(path.cost >= 0)
             tree.add_node(left);
 
+
         constraints = get_constraints(&node, conflict.agent2);
         constraint = get_constraint(conflict.agent2, conflict.move2, conflict.move1);
         constraints.push_back(constraint);
@@ -105,13 +112,11 @@ Solution CBS::find_solution(const Map &map, const Task &task)
         CBS_Node right({path}, parent, constraint, node.cost + path.cost - get_cost(node, conflict.agent2), node.cons_num + 1);
         if(path.cost >= 0)
             tree.add_node(right);
-
         time_spent = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::high_resolution_clock::now() - t);
         if(time_spent.count() > CN_TIMELIMIT)
             break;
     }
     while(tree.get_open_size() > 0);
-
     solution.paths = get_paths(&node, task.get_agents_size());
     solution.flowtime = node.cost;
     for(auto path:solution.paths)
@@ -216,19 +221,25 @@ Conflict CBS::check_conflicts(std::vector<Path> &paths)
                     b = positions[j].back();
                 if(sqrt((a.i - b.i)*(a.i - b.i) + (a.j - b.j)*(a.j - b.j)) + CN_EPSILON < 2*CN_AGENT_SIZE)
                 {
+
+                    //std::cout<<a.i<<" "<<a.j<<" "<<b.i<<" "<<b.j<<" "<<k<<" collision\n";
+                    //std::cout<<positions[i].size()<<" "<<positions[j].size()<<" "<<k<<" sizes\n";
+                    //if(positions[i].size() == 86 && a.i==4 && a.j==8)
+                    //for(int h=0; h<positions[i].size(); h++)
+                    //    std::cout<<positions[i][h].i<<" "<<positions[i][h].j<<" "<<positions[i][h].t<<" pos\n";
                     Move move1, move2;
                     for(int p = 1; p < paths[i].nodes.size(); p++)
-                        if(paths[i].nodes[p-1].g <= a.t && paths[i].nodes[p].g >= a.t)
+                        if(paths[i].nodes[p-1].g < a.t + CN_EPSILON && paths[i].nodes[p].g > a.t - CN_EPSILON)
                             move1 = Move(paths[i].nodes[p-1], paths[i].nodes[p]);
                     for(int p = 1; p < paths[j].nodes.size(); p++)
-                        if(paths[j].nodes[p-1].g <= b.t && paths[j].nodes[p].g >= b.t)
+                        if(paths[j].nodes[p-1].g < b.t + CN_EPSILON && paths[j].nodes[p].g > b.t - CN_EPSILON)
                             move2 = Move(paths[j].nodes[p-1], paths[j].nodes[p]);
-                    if(a.t + CN_EPSILON < double(k/10))
+                    if(a.t*10 + CN_EPSILON < k)
                     {
                         move1 = Move(paths[i].nodes.back(), paths[i].nodes.back());
                         move1.t2 = CN_INFINITY;
                     }
-                    if(b.t + CN_EPSILON < double(k/10))
+                    if(b.t*10 + CN_EPSILON < k)
                     {
                         move2 = Move(paths[j].nodes.back(), paths[j].nodes.back());
                         move2.t2 = CN_INFINITY;
