@@ -18,7 +18,7 @@ double SIPP::dist(const Node& a, const Node& b)
 void SIPP::find_successors(Node curNode, const Map &map, std::list<Node> &succs)
 {
     Node newNode;
-    std::vector<Step> valid_moves = moves.get_valid(curNode.i, curNode.j, map);
+    std::vector<Step> valid_moves = map.get_valid_moves(curNode.i, curNode.j);
     for(auto move : valid_moves)
     {
         newNode.i = curNode.i + move.i;
@@ -281,7 +281,7 @@ Path SIPP::find_path(Agent agent, const Map &map, std::list<Constraint> cons, He
     make_constraints(cons);
     this->h_values = h_values;
     this->agent = agent;
-    open.resize(map.height);
+    open.resize(map.get_height());
     Node curNode(agent.start_i, agent.start_j, 0, 0);
     curNode.g = 0;
     if(collision_intervals.count(std::make_pair(curNode.i, curNode.j)) > 0)
@@ -297,8 +297,8 @@ Path SIPP::find_path(Agent agent, const Map &map, std::list<Constraint> cons, He
     openSize++;
     while(openSize > 0)
     {
-        curNode = find_min(map.height);
-        close.insert({curNode.i * map.width + curNode.j, curNode});
+        curNode = find_min(map.get_height());
+        close.insert({curNode.i * map.get_width() + curNode.j, curNode});
         if(curNode.i == agent.goal_i && curNode.j == agent.goal_j && curNode.interval.second == CN_INFINITY)
         {
             pathFound = true;
@@ -308,12 +308,12 @@ Path SIPP::find_path(Agent agent, const Map &map, std::list<Constraint> cons, He
         succs.clear();
         find_successors(curNode, map, succs);
         std::list<Node>::iterator it = succs.begin();
-        auto parent = &(close.find(curNode.i * map.width + curNode.j)->second);
+        auto parent = &(close.find(curNode.i * map.get_width() + curNode.j)->second);
         while(it != succs.end())
         {
             bool has = false;
             it->parent = parent;
-            auto range = close.equal_range(it->i * map.width + it->j);
+            auto range = close.equal_range(it->i * map.get_width() + it->j);
             for(auto i = range.first; i != range.second; i++)
                 if(i->second.interval.first - CN_EPSILON < it->interval.first && i->second.interval.second + CN_EPSILON > it->interval.second)
                 {

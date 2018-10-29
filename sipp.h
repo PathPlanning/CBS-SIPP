@@ -3,7 +3,6 @@
 #include "structs.h"
 #include "map.h"
 #include "heuristic.h"
-#include "moves.h"
 #include <unordered_map>
 #include <map>
 #include <set>
@@ -11,7 +10,7 @@ class SIPP
 {
 public:
 
-    SIPP() { moves.generate(CN_K); h_values = nullptr;}
+    SIPP()  { h_values = nullptr; }
     ~SIPP() { h_values = nullptr; }
     Path find_path(Agent agent, const Map &map, std::list<Constraint> cons = {}, Heuristic *h_values = nullptr);
 
@@ -30,7 +29,6 @@ private:
     std::vector<std::list<Node>> open;
     Path path;
     Heuristic* h_values;
-    Moves moves;
     std::map<Move, std::vector<Move>> constraints;//stores sets of constraints associated with moves
     std::map<std::pair<int, int>, std::vector<std::pair<double, double>>> collision_intervals;//stores sets of collision intervals associated with cells
 };

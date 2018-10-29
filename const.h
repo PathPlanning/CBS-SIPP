@@ -1,7 +1,7 @@
 #ifndef CONST_H
 #define CONST_H
 
-#define CN_TIMELIMIT    60 // in seconds
+#define CN_TIMELIMIT    300 // in seconds
 #define CN_AGENT_SIZE   sqrt(2.0)/4.0
 #define CN_K            2
 #define CN_OBSTL        1

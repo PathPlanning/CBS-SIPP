@@ -21,6 +21,4 @@ HEADERS += \
     const.h \
     sipp.h \
     xml_logger.h \
-    lineofsight.h \
-    heuristic.h \
-    moves.h
+    heuristic.h

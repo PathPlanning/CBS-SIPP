@@ -4,7 +4,7 @@ void CBS::init_root(const Map &map, const Task &task)
 {
     CBS_Node root;
     Path path;
-    h_values.init(map.height, map.width, task.get_agents_size(), CN_K);
+    h_values.init(map.get_height(), map.get_width(), task.get_agents_size());
     for(int i = 0; i < task.get_agents_size(); i++)
     {
         Agent agent = task.get_agent(i);
@@ -15,6 +15,7 @@ void CBS::init_root(const Map &map, const Task &task)
     }
     root.parent = nullptr;
     root.cons_num = 0;
+    solution.init_cost = root.cost;
     tree.add_node(root);
 }
 
@@ -57,7 +58,7 @@ Constraint CBS::get_constraint(int agent, Move move1, Move move2)
         double a(v*v);
         double b(w*v);
         double dscr(b*b - a*c);
-        if(dscr <= 0)
+        if(dscr - CN_EPSILON < 0)
         {
             break;
         }
@@ -118,6 +119,7 @@ Solution CBS::find_solution(const Map &map, const Task &task)
     while(tree.get_open_size() > 0);
     solution.paths = get_paths(&node, task.get_agents_size());
     solution.flowtime = node.cost;
+    solution.constraints_num = node.cons_num;
     for(auto path:solution.paths)
         solution.makespan = (solution.makespan > path.cost) ? solution.makespan : path.cost;
     solution.time = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::high_resolution_clock::now() - t);
@@ -148,7 +150,6 @@ Conflict CBS::check_conflicts(std::vector<Path> &paths)
             continue;
         positions[i].resize(0);
         int k = 0;
-        double part = 1;
         for(int j = 1; j < paths[i].nodes.size(); j++)
         {
             cur = paths[i].nodes[j];
@@ -156,14 +157,6 @@ Conflict CBS::check_conflicts(std::vector<Path> &paths)
             int di = cur.i - check.i;
             int dj = cur.j - check.j;
             double dist = (cur.t - check.t)*10;
-            int steps = (cur.t - check.t)*10;
-            if(dist - steps + part >= 1)
-            {
-                steps++;
-                part = dist - steps;
-            }
-            else
-                part += dist - steps;
             double stepi = double(di)/dist;
             double stepj = double(dj)/dist;
             double curt = double(k)*0.1;
@@ -172,12 +165,12 @@ Conflict CBS::check_conflicts(std::vector<Path> &paths)
             conf.i = curi;
             conf.j = curj;
             conf.t = curt;
-            if(curt <= cur.t)
+            if(curt - CN_EPSILON < cur.t)
             {
                 positions[i].push_back(conf);
                 k++;
             }
-            while(curt <= cur.t)
+            while(curt - CN_EPSILON < cur.t)
             {
                 if(curt + 0.1 > cur.t)
                     break;

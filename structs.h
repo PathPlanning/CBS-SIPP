@@ -82,6 +82,15 @@ struct Move
     }
 };
 
+struct Step
+{
+    int i;
+    int j;
+    double cost;
+    Step(const Node& node): i(node.i), j(node.j), cost(node.g) {}
+    Step(int _i = 0, int _j = 0, double _cost = -1.0): i(_i), j(_j), cost(_cost) {}
+};
+
 struct Conflict
 {
     int agent1, agent2;
@@ -89,13 +98,6 @@ struct Conflict
     Move move1, move2;
     Conflict(int _agent1 = -1, int _agent2 = -1, Move _move1 = Move(), Move _move2 = Move(), double _t = -1)
         : agent1(_agent1), agent2(_agent2), t(_t), move1(_move1), move2(_move2) {}
-    Constraint get_constraint(int agent)
-    {
-        if(agent == 1)
-            return Constraint(agent1, t, move1.i1, move1.j1, move1.i2, move1.j2);
-        else
-            return Constraint(agent2, t, move2.i1, move2.j1, move2.i2, move2.j2);
-    }
 };
 
 struct CBS_Node
@@ -190,10 +192,12 @@ struct Solution
 {
     double flowtime;
     double makespan;
+    double init_cost;
+    int constraints_num;
     std::chrono::duration<double> time;
     std::vector<Path> paths;
     Solution(double _flowtime = -1, double _makespan = -1, std::vector<Path> _paths = {})
-        : flowtime(_flowtime), makespan(_makespan), paths(_paths) {}
+        : flowtime(_flowtime), makespan(_makespan), paths(_paths) { init_cost = -1; constraints_num = 0; }
     ~Solution() { paths.clear(); }
 };
 
