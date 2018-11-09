@@ -175,99 +175,10 @@ void Map::generate_moves()
         for(int j = 0; j < width; j++)
         {
             std::vector<bool> valid(moves.size(), true);
-            if(CN_K == 2)
-            {
-                for(int k = 0; k < 4; k++)
-                    if(!cell_on_grid(i + moves[k].i, j + moves[k].j) || cell_is_obstacle(i + moves[k].i, j + moves[k].j))
-                        valid[k] = false;
-            }
-            else if(CN_K == 3)
-            {
-                for(int k = 0; k < 8; k += 2)
-                    if(!cell_on_grid(i + moves[k].i, j + moves[k].j) || cell_is_obstacle(i + moves[k].i, j + moves[k].j))
-                    {
-                        valid[k-1 < 0 ? 7 : k - 1] = false; valid[k] = false; valid[k + 1] = false;
-                    }
-                for(int k = 1; k < 8; k += 2)
-                    if(!cell_on_grid(i + moves[k].i, j + moves[k].j) || cell_is_obstacle(i + moves[k].i, j + moves[k].j))
-                        valid[k] = false;
-            }
-            else if(CN_K == 4)
-            {
-                for(int k = 0; k < 8; k += 2)
-                    if(!cell_on_grid(i + moves[k].i, j + moves[k].j) || cell_is_obstacle(i + moves[k].i, j + moves[k].j))
-                    {
-                        if(k == 0)
-                        {
-                            valid[7]  = false;
-                            valid[15] = false;
-                        }
-                        else
-                        {
-                            valid[k - 1] = false;
-                            valid[k + 7] = false;
-                        }
-                        valid[k]     = false;
-                        valid[k + 1] = false;
-                        valid[k + 8] = false;
-                    }
-                for(int k = 1; k < 8; k += 2)
-                    if(!cell_on_grid(i + moves[k].i, j + moves[k].j) || cell_is_obstacle(i + moves[k].i, j + moves[k].j))
-                    {
-                        valid[k]     = false;
-                        valid[k + 7] = false;
-                        valid[k + 8] = false;
-                    }
-                for(int k = 8; k < 16; k++)
-                    if(!cell_on_grid(i + moves[k].i, j + moves[k].j) || cell_is_obstacle(i + moves[k].i, j + moves[k].j))
-                        valid[k] = false;
-            }
-            else
-            {
-                for(int k = 0; k < 8; k += 2)
-                    if(!cell_on_grid(i + moves[k].i, j + moves[k].j) || cell_is_obstacle(i + moves[k].i, j + moves[k].j))
-                    {
-                        if(k == 0)
-                        {
-                            valid[7]  = false;
-                            valid[15] = false;
-                            valid[30] = false;
-                            valid[31] = false;
-                        }
-                        else
-                        {
-                            valid[k - 1]    = false;
-                            valid[k + 7]    = false;
-                            valid[k*2 + 14] = false;
-                            valid[k*2 + 15] = false;
-                        }
-                        valid[k]        = false;
-                        valid[k + 1]    = false;
-                        valid[k + 8]    = false;
-                        valid[k*2 + 16] = false;
-                        valid[k*2 + 17] = false;
-                    }
-                for(int k = 1; k < 8; k += 2)
-                    if(!cell_on_grid(i + moves[k].i, j + moves[k].j) || cell_is_obstacle(i + moves[k].i, j + moves[k].j))
-                    {
-                        valid[k]     = false;
-                        valid[k + 7] = false;
-                        valid[k + 8] = false;
-                        for(int l = 14; l < 18; l++)
-                            valid[k*2 + l] = false;
-                    }
-                for(int k = 8; k < 16; k++)
-                    if(!cell_on_grid(i + moves[k].i, j + moves[k].j) || cell_is_obstacle(i + moves[k].i, j + moves[k].j))
-                    {
-                        valid[k]       = false;
-                        valid[k*2]     = false;
-                        valid[k*2 + 1] = false;
-                    }
-                for(int k = 16; k < 32; k++)
-                    if(!cell_on_grid(i + moves[k].i, j + moves[k].j) || cell_is_obstacle(i + moves[k].i, j + moves[k].j))
-                        valid[k]       = false;
-            }
-
+            for(int k = 0; k < moves.size(); k++)
+                if(!cell_on_grid(i + moves[k].i, j + moves[k].j) || cell_is_obstacle(i + moves[k].i, j + moves[k].j)
+                        || !check_line(i, j, i+moves[k].i, j+moves[k].j))
+                    valid[k] = false;
             std::vector<Step> v_moves = {};
             for(int k = 0; k < valid.size(); k++)
                 if(valid[k])
@@ -313,4 +224,104 @@ int Map::get_value(int i, int j) const
         return -1;
     else
         return grid[i][j];
+}
+
+bool Map::check_line(int x1, int y1, int x2, int y2)
+{
+    int delta_x(std::abs(x1 - x2));
+    int delta_y(std::abs(y1 - y2));
+    if((delta_x > delta_y && x1 > x2) || (delta_y >= delta_x && y1 > y2))
+    {
+        std::swap(x1, x2);
+        std::swap(y1, y2);
+    }
+    int step_x(x1 < x2 ? 1 : -1);
+    int step_y(y1 < y2 ? 1 : -1);
+    int error(0), x(x1), y(y1);
+    int gap = CN_AGENT_SIZE*sqrt(pow(delta_x, 2) + pow(delta_y, 2)) + double(delta_x + delta_y)/2 - CN_EPSILON;
+    int k, num;
+
+    if(delta_x > delta_y)
+    {
+        int extraCheck = CN_AGENT_SIZE*delta_y/sqrt(pow(delta_x, 2) + pow(delta_y, 2)) + 0.5 - CN_EPSILON;
+        for(int n = 1; n <= extraCheck; n++)
+        {
+            error += delta_y;
+            num = (gap - error)/delta_x;
+            for(k = 1; k <= num; k++)
+                if(cell_is_obstacle(x1 - n*step_x, y1 + k*step_y))
+                    return false;
+            for(k = 1; k <= num; k++)
+                if(cell_is_obstacle(x2 + n*step_x, y2 - k*step_y))
+                    return false;
+        }
+        error = 0;
+        for(x = x1; x != x2 + step_x; x++)
+        {
+            if(cell_is_obstacle(x, y))
+                return false;
+            if(x < x2 - extraCheck)
+            {
+                num = (gap + error)/delta_x;
+                for(k = 1; k <= num; k++)
+                    if(cell_is_obstacle(x, y + k*step_y))
+                        return false;
+            }
+            if(x > x1 + extraCheck)
+            {
+                num = (gap - error)/delta_x;
+                for(k = 1; k <= num; k++)
+                    if(cell_is_obstacle(x, y - k*step_y))
+                        return false;
+            }
+            error += delta_y;
+            if((error<<1) > delta_x)
+            {
+                y += step_y;
+                error -= delta_x;
+            }
+        }
+    }
+    else
+    {
+        int extraCheck = CN_AGENT_SIZE*delta_x/sqrt(pow(delta_x, 2) + pow(delta_y, 2)) + 0.5 - CN_EPSILON;
+        for(int n = 1; n <= extraCheck; n++)
+        {
+            error += delta_x;
+            num = (gap - error)/delta_y;
+            for(k = 1; k <= num; k++)
+                if(cell_is_obstacle(x1 + k*step_x, y1 - n*step_y))
+                    return false;
+            for(k = 1; k <= num; k++)
+                if(cell_is_obstacle(x2 - k*step_x, y2 + n*step_y))
+                    return false;
+        }
+        error = 0;
+        for(y = y1; y != y2 + step_y; y += step_y)
+        {
+            if(cell_is_obstacle(x, y))
+                return false;
+            if(y < y2 - extraCheck)
+            {
+                num = (gap + error)/delta_y;
+                for(k = 1; k <= num; k++)
+                    if(cell_is_obstacle(x + k*step_x, y))
+                        return false;
+            }
+            if(y > y1 + extraCheck)
+            {
+                num = (gap - error)/delta_y;
+                for(k = 1; k <= num; k++)
+                    if(cell_is_obstacle(x - k*step_x, y))
+                        return false;
+            }
+            error += delta_x;
+            if((error<<1) > delta_y)
+            {
+                x += step_x;
+                error -= delta_y;
+            }
+        }
+    }
+    return true;
 }

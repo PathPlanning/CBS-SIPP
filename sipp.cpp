@@ -63,20 +63,16 @@ void SIPP::find_successors(Node curNode, const Map &map, std::list<Node> &succs)
 Node SIPP::find_min(int size)
 {
     Node min;
-    min.f = -1;
+    min.f = CN_INFINITY;
     for(int i = 0; i < size; i++)
     {
         if(!open[i].empty())
-            if(open[i].begin()->f <= min.f || min.f == -1)
-            {
-                if (open[i].begin()->f == min.f)
-                {
-                    if (open[i].begin()->g >= min.g)
-                        min = *open[i].begin();
-                }
-                else
-                    min = *open[i].begin();
-            }
+        {
+            if(open[i].begin()->f + CN_EPSILON < min.f) // if min.f has higher value
+                min = *open[i].begin();
+            else if(fabs(open[i].begin()->f - min.f) < CN_EPSILON && open[i].begin()->g + CN_EPSILON > min.g) // if f-values are equal, compare g-values
+                min = *open[i].begin();
+        }
     }
     open[min.i].pop_front();
     openSize--;
@@ -86,7 +82,7 @@ Node SIPP::find_min(int size)
 void SIPP::add_open(Node newNode)
 {
     std::list<Node>::iterator iter, pos;
-    bool posFound = false;
+    bool pos_found = false;
     pos = open[newNode.i].end();
     if (open[newNode.i].size() == 0)
     {
@@ -96,25 +92,22 @@ void SIPP::add_open(Node newNode)
     }
     for(iter = open[newNode.i].begin(); iter != open[newNode.i].end(); ++iter)
     {
-        if ((iter->f >= newNode.f) && (!posFound))
+        if (!pos_found)
         {
-            if (iter->f == newNode.f)
-            {
-                if (newNode.g <= iter->g)
-                {
-                    pos = iter;
-                    posFound = true;
-                }
-            }
-            else
+            if(iter->f > newNode.f + CN_EPSILON) // if newNode.f has lower f-value
             {
                 pos = iter;
-                posFound = true;
+                pos_found = true;
+            }
+            else if(fabs(iter->f - newNode.f) < CN_EPSILON && newNode.g + CN_EPSILON > iter->g) // if f-values are equal, compare g-values
+            {
+                pos = iter;
+                pos_found = true;
             }
         }
-        if (iter->j == newNode.j && iter->interval.second == newNode.interval.second)
+        if (iter->j == newNode.j && fabs(iter->interval.second - newNode.interval.second) < CN_EPSILON)
         {
-            if(newNode.f >= iter->f)
+            if(newNode.f > iter->f - CN_EPSILON)
                 return;
             if(pos == iter)
             {
@@ -331,5 +324,6 @@ Path SIPP::find_path(Agent agent, const Map &map, std::list<Constraint> cons, He
         path.cost = curNode.g;
     }
     path.agentID = agent.id;
+    path.expanded = close.size();
     return path;
 }

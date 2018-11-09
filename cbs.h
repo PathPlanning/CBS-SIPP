@@ -6,6 +6,7 @@
 #include "task.h"
 #include "sipp.h"
 #include "heuristic.h"
+#include <windows.h>
 
 class CBS
 {
@@ -13,9 +14,11 @@ public:
     CBS() {}
     Solution find_solution(const Map &map, const Task &task);
 private:
-    void init_root(const Map &map, const Task &task);
+    bool init_root(const Map &map, const Task &task);
     std::list<Constraint> get_constraints(CBS_Node *node, int agent_id);
-    Conflict check_conflicts(std::vector<Path> &paths);
+    Conflict check_conflicts(std::vector<Path> &paths, std::vector<int> conflicting_agents);
+    Conflict check_paths(Path pathA, Path pathB);
+    bool check_conflict(Move move1, Move move2);
     //int count_conflicts(std::vector<Path> &paths);
     Constraint get_constraint(int agent, Move move1, Move move2);
     double get_cost(CBS_Node node, int agent_id);

@@ -17,6 +17,7 @@ private:
     std::vector<std::vector<int>> grid;
     int height, width;
     std::vector<std::vector<std::vector<Step>>> valid_moves;
+    bool check_line(int x1, int y1, int x2, int y2);
 public:
     Map(){}
     ~Map(){}

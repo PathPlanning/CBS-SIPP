@@ -8,18 +8,18 @@
 int main(int argc, const char *argv[])
 {
     bool run_64x64_empty_grids = false;
-    bool run_10x10_empty_grids = true;
-    bool run_warehouse = false;
+    bool run_10x10_empty_grids = false;
+    bool run_den520d = true;
     int task_num = 1000;
-    std::vector<int> agents_num = {4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+    std::vector<int> agents_num = {20,25,30,35,40,45,50};
     std::string path = "instances/";
     if(run_64x64_empty_grids)
         path += "64x64_empty/";
     else if(run_10x10_empty_grids)
-        path += "10x10_empty/";
-    else if (run_warehouse)
-        path += "warehouse/";
-    if(run_64x64_empty_grids || run_10x10_empty_grids || run_warehouse)
+        path += "10x10/";
+    else if (run_den520d)
+        path += "den520d/";
+    if(run_64x64_empty_grids || run_10x10_empty_grids || run_den520d)
     {
         Map map = Map();
         map.get_map((path + "map.xml").c_str());
@@ -34,7 +34,11 @@ int main(int argc, const char *argv[])
                 CBS cbs;
                 Solution solution = cbs.find_solution(map, task);
                 XML_logger logger;
-                std::cout<< agents_num[k] << " " << i << " " << solution.time.count() << " " << solution.makespan << " " << solution.flowtime << std::endl;
+                if(solution.flowtime > 0)
+                {
+                    std::cout<< agents_num[k] << " " << i << " " << solution.time.count() << " " << solution.makespan << " " << solution.flowtime<< " " << solution.check_time
+                         << " " << solution.high_level_expanded << " " << solution.low_level_expanded << std::endl;
+                }
                 logger.get_log((path + std::to_string(agents_num[k]) + "/" + std::to_string(i) + "_task.xml").c_str());
                 logger.write_to_log_summary(solution);
                 logger.write_to_log_path(solution);

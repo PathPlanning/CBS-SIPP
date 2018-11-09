@@ -40,7 +40,7 @@ void Heuristic::add_open(Node newNode)
 {
     for(auto iter = open[newNode.i].begin(); iter != open[newNode.i].end(); ++iter)
     {
-        if (iter->g > newNode.g)
+        if (iter->g >= newNode.g)
         {
             openSize++;
             open[newNode.i].insert(iter, newNode);
@@ -57,9 +57,10 @@ void Heuristic::add_open(Node newNode)
 Node Heuristic::find_min(int size)
 {
     Node min;
+    min.g = CN_INFINITY;
     for(int i = 0; i < size; i++)
         if(!open[i].empty())
-            if(open[i].begin()->g < min.g || min.g == -1)
+            if(open[i].begin()->g - CN_EPSILON < min.g)
                 min = *open[i].begin();
     open[min.i].pop_front();
     openSize--;

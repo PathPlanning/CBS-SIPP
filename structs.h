@@ -5,6 +5,7 @@
 #include <list>
 #include <iostream>
 #include <chrono>
+#include "const.h"
 
 struct Agent
 {
@@ -42,6 +43,7 @@ struct Path
     std::vector<Node> nodes;
     double cost;
     int agentID;
+    int expanded;
     Path(std::vector<Node> _nodes = std::vector<Node>(0), double _cost = -1, int _agentID = -1)
         : nodes(_nodes), cost(_cost), agentID(_agentID) {}
 };
@@ -108,8 +110,9 @@ struct CBS_Node
     double cost;
     int cons_num;
     int conflicts_num;
+    int low_level_expanded;
     CBS_Node(std::vector<Path> _paths = {}, CBS_Node* _parent = nullptr, Constraint _constraint = Constraint(), double _cost = 0, int _cons_num = 0, int _conflicts_num = 0)
-        :paths(_paths), parent(_parent), constraint(_constraint), cost(_cost), cons_num(_cons_num), conflicts_num(_conflicts_num) {}
+        :paths(_paths), parent(_parent), constraint(_constraint), cost(_cost), cons_num(_cons_num), conflicts_num(_conflicts_num) {low_level_expanded = 0;}
     ~CBS_Node()
     {
         parent = nullptr;
@@ -136,18 +139,45 @@ struct Open_Elem
 class CBS_Tree
 {
     std::list<CBS_Node> tree;
-    std::list<Open_Elem> open;
+    std::vector<std::list<Open_Elem>> open;
+    int open_size;
 public:
+    CBS_Tree() { open_size = 0; open.clear(); }
     int get_open_size()
     {
-        return open.size();
+        return open_size;
     }
 
     void add_node(CBS_Node node)
     {
         tree.push_back(node);
         bool inserted = false;
-        for(auto it = open.begin(); it != open.end(); it++)
+        for(int k = 0; k < open.size(); k++)
+        {
+            if(open[k].begin()->cost + CN_EPSILON > node.cost)
+            {
+                if(fabs(open[k].begin()->cost - node.cost) < CN_EPSILON)
+                {
+                    open[k].push_back(Open_Elem(&tree.back(), node.cost, node.cons_num, node.conflicts_num));
+                    inserted = true;
+                    break;
+                }
+                else
+                {
+                    std::list<Open_Elem> open_elem = {Open_Elem(&tree.back(), node.cost, node.cons_num, node.conflicts_num)};
+                    open.insert(open.begin() + k, open_elem);
+                    inserted = true;
+                    break;
+                }
+            }
+        }
+        if(!inserted)
+        {
+            std::list<Open_Elem> open_elem = {Open_Elem(&tree.back(), node.cost, node.cons_num, node.conflicts_num)};
+            open.push_back(open_elem);
+        }
+        open_size++;
+        /*for(auto it = open.begin(); it != open.end(); it++)
         {
             if(it->cost > node.cost || (it->cost == node.cost && node.cons_num < it->cons_num))
             {
@@ -157,17 +187,20 @@ public:
             }
         }
         if(!inserted)
-            open.emplace_back(Open_Elem(&tree.back(), node.cost, node.cons_num));
+            open.emplace_back(Open_Elem(&tree.back(), node.cost, node.cons_num));*/
     }
 
     CBS_Node* get_front()
     {
-        return open.begin()->tree_pointer;
+        return open[0].begin()->tree_pointer;
     }
 
     void pop_front()
     {
-        open.pop_front();
+        open[0].pop_front();
+        if(open[0].empty())
+            open.erase(open.begin());
+        open_size--;
         return;
     }
 
@@ -192,8 +225,11 @@ struct Solution
 {
     double flowtime;
     double makespan;
+    double check_time;
     double init_cost;
     int constraints_num;
+    int high_level_expanded;
+    double low_level_expanded;
     std::chrono::duration<double> time;
     std::vector<Path> paths;
     Solution(double _flowtime = -1, double _makespan = -1, std::vector<Path> _paths = {})
