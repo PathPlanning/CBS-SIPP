@@ -107,12 +107,17 @@ struct CBS_Node
     std::vector<Path> paths;
     CBS_Node* parent;
     Constraint constraint;
+    long long int id;
     double cost;
     int cons_num;
     int conflicts_num;
+    bool look_for_cardinal;
     int low_level_expanded;
-    CBS_Node(std::vector<Path> _paths = {}, CBS_Node* _parent = nullptr, Constraint _constraint = Constraint(), double _cost = 0, int _cons_num = 0, int _conflicts_num = 0)
-        :paths(_paths), parent(_parent), constraint(_constraint), cost(_cost), cons_num(_cons_num), conflicts_num(_conflicts_num) {low_level_expanded = 0;}
+    CBS_Node(std::vector<Path> _paths = {}, CBS_Node* _parent = nullptr, Constraint _constraint = Constraint(), double _cost = 0, int _cons_num = 0, int _conflicts_num = 0, bool _look_for_cardinal = true)
+        :paths(_paths), parent(_parent), constraint(_constraint), cost(_cost), cons_num(_cons_num), conflicts_num(_conflicts_num), look_for_cardinal(_look_for_cardinal)
+    {
+        low_level_expanded = 0;
+    }
     ~CBS_Node()
     {
         parent = nullptr;
@@ -143,6 +148,11 @@ class CBS_Tree
     int open_size;
 public:
     CBS_Tree() { open_size = 0; open.clear(); }
+    int get_size()
+    {
+        return tree.size();
+    }
+
     int get_open_size()
     {
         return open_size;
@@ -229,8 +239,10 @@ struct Solution
     double init_cost;
     int constraints_num;
     int high_level_expanded;
+    int low_level_expansions;
     double low_level_expanded;
     std::chrono::duration<double> time;
+    std::chrono::duration<double> init_time;
     std::vector<Path> paths;
     Solution(double _flowtime = -1, double _makespan = -1, std::vector<Path> _paths = {})
         : flowtime(_flowtime), makespan(_makespan), paths(_paths) { init_cost = -1; constraints_num = 0; }

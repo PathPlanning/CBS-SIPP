@@ -15,7 +15,7 @@ double SIPP::dist(const Node& a, const Node& b)
     return std::sqrt(pow(a.i - b.i, 2) + pow(a.j - b.j, 2));
 }
 
-void SIPP::find_successors(Node curNode, const Map &map, std::list<Node> &succs)
+void SIPP::find_successors(Node curNode, const Map &map, std::list<Node> &succs, Heuristic &h_values)
 {
     Node newNode;
     std::vector<Step> valid_moves = map.get_valid_moves(curNode.i, curNode.j);
@@ -54,7 +54,7 @@ void SIPP::find_successors(Node curNode, const Map &map, std::list<Node> &succs)
             newNode.interval = interval;
             if(newNode.g - move.cost > curNode.interval.second || newNode.g > newNode.interval.second)
                 continue;
-            newNode.f = newNode.g + h_values->get_value(newNode.i, newNode.j, agent.id);
+            newNode.f = newNode.g + h_values.get_value(newNode.i, newNode.j, agent.id);
             succs.push_back(newNode);
         }
     }
@@ -268,11 +268,10 @@ void SIPP::make_constraints(std::list<Constraint> &cons)
     }
 }
 
-Path SIPP::find_path(Agent agent, const Map &map, std::list<Constraint> cons, Heuristic* h_values)
+Path SIPP::find_path(Agent agent, const Map &map, std::list<Constraint> cons, Heuristic &h_values)
 {
     this->clear();
     make_constraints(cons);
-    this->h_values = h_values;
     this->agent = agent;
     open.resize(map.get_height());
     Node curNode(agent.start_i, agent.start_j, 0, 0);
@@ -299,7 +298,7 @@ Path SIPP::find_path(Agent agent, const Map &map, std::list<Constraint> cons, He
         }
         std::list<Node> succs;
         succs.clear();
-        find_successors(curNode, map, succs);
+        find_successors(curNode, map, succs, h_values);
         std::list<Node>::iterator it = succs.begin();
         auto parent = &(close.find(curNode.i * map.get_width() + curNode.j)->second);
         while(it != succs.end())

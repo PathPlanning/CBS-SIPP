@@ -2,6 +2,7 @@
 
 void Heuristic::init(int height, int width, int agents)
 {
+    h_values.clear();
     h_values.resize(height);
     for(int i = 0; i < height; i++)
     {
@@ -40,7 +41,7 @@ void Heuristic::add_open(Node newNode)
 {
     for(auto iter = open[newNode.i].begin(); iter != open[newNode.i].end(); ++iter)
     {
-        if (iter->g >= newNode.g)
+        if (iter->g + CN_EPSILON > newNode.g)
         {
             openSize++;
             open[newNode.i].insert(iter, newNode);

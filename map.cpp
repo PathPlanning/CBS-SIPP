@@ -225,7 +225,6 @@ int Map::get_value(int i, int j) const
     else
         return grid[i][j];
 }
-
 bool Map::check_line(int x1, int y1, int x2, int y2)
 {
     int delta_x(std::abs(x1 - x2));

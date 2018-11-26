@@ -31,7 +31,6 @@ public:
     std::vector<Step> get_valid_moves(int i, int j) const;
     void generate_moves();
     void print_map();
-
 };
 
 #endif // MAP_H
