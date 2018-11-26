@@ -1,4 +1,5 @@
 TEMPLATE = app
+TARGET = CBS-SIPP
 CONFIG += console c++11
 CONFIG -= app_bundle
 CONFIG -= qt
@@ -9,7 +10,8 @@ SOURCES += main.cpp \
     tinyxml2.cpp \
     task.cpp \
     sipp.cpp \
-    xml_logger.cpp
+    xml_logger.cpp \
+    heuristic.cpp
 
 HEADERS += \
     structs.h \
@@ -19,4 +21,5 @@ HEADERS += \
     task.h \
     const.h \
     sipp.h \
-    xml_logger.h
+    xml_logger.h \
+    heuristic.h

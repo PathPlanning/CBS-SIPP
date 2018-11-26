@@ -1,5 +1,29 @@
 #include "map.h"
 
+void Map::generate_moves()
+{
+    std::vector<Step> moves;
+    valid_moves.resize(height);
+    for(int i = 0; i < height; i++)
+        valid_moves[i].resize(width);
+    moves = {{0,1}, {1,0}, {-1,0},  {0,-1}};
+    for(int i = 0; i < height; i++)
+        for(int j = 0; j < width; j++)
+        {
+            std::vector<bool> valid(moves.size(), true);
+                for(int k = 0; k < 4; k++)
+                    if(!cell_on_grid(i + moves[k].i, j + moves[k].j) || cell_is_obstacle(i + moves[k].i, j + moves[k].j))
+                        valid[k] = false;
+            std::vector<Step> v_moves = {};
+            for(int k = 0; k < valid.size(); k++)
+                if(valid[k])
+                    v_moves.push_back(moves[k]);
+            valid_moves[i][j] = v_moves;
+        }
+}
+
+
+
 bool Map::get_map(const char* FileName)
 {
 
@@ -175,6 +199,11 @@ bool Map::cell_is_obstacle(int i, int j) const
 bool Map::cell_on_grid(int i, int j) const
 {
     return (i < height && i >= 0 && j < width && j >= 0);
+}
+
+std::vector<Step> Map::get_valid_moves(int i, int j) const
+{
+    return valid_moves[i][j];
 }
 
 int Map::get_value(int i, int j) const

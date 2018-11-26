@@ -5,13 +5,15 @@
 #include <unordered_map>
 #include <map>
 #include <set>
+#include "heuristic.h"
+
 class SIPP
 {
 public:
 
-    SIPP() { }
-    ~SIPP() { }
-    Path find_path(Agent agent, const Map &map, const std::vector<std::vector<int> > &cat, std::list<Constraint> cons = {});
+    SIPP() { h_values = nullptr;}
+    ~SIPP() { h_values = nullptr; }
+    Path find_path(Agent agent, const Map &map, const std::vector<std::vector<int> > &cat, std::list<Constraint> cons = {}, Heuristic *h_values = nullptr);
 
 private:
     Agent agent;
@@ -27,6 +29,7 @@ private:
     std::unordered_multimap<int, Node> close;
     std::vector<std::list<Node>> open;
     Path path;
+    Heuristic* h_values;
     std::map<Move, std::vector<Move>> constraints;//stores sets of constraints associated with moves
     std::map<std::pair<int,int>, std::vector<std::pair<int,int>>> collision_intervals;//stores sets of collision intervals associated with cells
 };

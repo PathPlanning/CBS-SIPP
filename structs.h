@@ -20,9 +20,9 @@ struct Node
     int     i, j;
     int  f, g;
     Node*   parent;
-    std::pair<double, double> interval;
+    std::pair<int, int> interval;
 
-    Node(int _i = -1, int _j = -1, int _f = -1, int _g = -1, Node* _parent = nullptr, double begin = -1, double end = -1)
+    Node(int _i = -1, int _j = -1, int _f = -1, int _g = -1, Node* _parent = nullptr, int begin = -1, int end = -1)
         :i(_i), j(_j), f(_f), g(_g), parent(_parent), interval(std::make_pair(begin, end)) {}
 
     ~Node() { parent = nullptr; }
@@ -33,6 +33,7 @@ struct Path
     std::vector<Node> nodes;
     int cost;
     int agentID;
+    int expanded;
     Path(std::vector<Node> _nodes = std::vector<Node>(0), int _cost = -1, int _agentID = -1)
         : nodes(_nodes), cost(_cost), agentID(_agentID) {}
 };
@@ -72,6 +73,15 @@ struct Move
     }
 };
 
+struct Step
+{
+    int i;
+    int j;
+    int cost;
+    Step(const Node& node): i(node.i), j(node.j), cost(node.g) {}
+    Step(int _i = 0, int _j = 0, int _cost = -1): i(_i), j(_j), cost(_cost) {}
+};
+
 struct Conflict
 {
     int agent1, agent2;
@@ -93,11 +103,13 @@ struct CBS_Node
     std::vector<Path> paths;
     CBS_Node* parent;
     Constraint constraint;
-    double cost;
+    int id;
+    int cost;
     int cons_num;
     int conflicts_num;
-    CBS_Node(std::vector<Path> _paths = {}, CBS_Node* _parent = nullptr, Constraint _constraint = Constraint(), double _cost = 0, int _cons_num = 0, int _conflicts_num = 0)
-        :paths(_paths), parent(_parent), constraint(_constraint), cost(_cost), cons_num(_cons_num), conflicts_num(_conflicts_num) {}
+    bool look_for_cardinal;
+    CBS_Node(std::vector<Path> _paths = {}, CBS_Node* _parent = nullptr, Constraint _constraint = Constraint(), double _cost = 0, int _cons_num = 0, int _conflicts_num = 0, bool _look_for_cardinal = true)
+        :paths(_paths), parent(_parent), constraint(_constraint), cost(_cost), cons_num(_cons_num), conflicts_num(_conflicts_num), look_for_cardinal(_look_for_cardinal) {}
     ~CBS_Node()
     {
         parent = nullptr;
@@ -109,11 +121,11 @@ struct CBS_Node
 struct Open_Elem
 {
     CBS_Node* tree_pointer;
-    double cost;
+    int cost;
     int cons_num;
     int conflicts_num;
 
-    Open_Elem(CBS_Node* _tree_pointer = nullptr, double _cost = -1, int _cons_num = -1, int _conflicts_num = -1)
+    Open_Elem(CBS_Node* _tree_pointer = nullptr, int _cost = -1, int _cons_num = -1, int _conflicts_num = -1)
         : tree_pointer(_tree_pointer), cost(_cost), cons_num(_cons_num), conflicts_num(_conflicts_num) {}
     ~Open_Elem()
     {
@@ -124,7 +136,8 @@ struct Open_Elem
 class CBS_Tree
 {
     std::list<CBS_Node> tree;
-    std::list<Open_Elem> open;
+    std::vector<std::list<Open_Elem>> open;
+    int open_size;
 public:
     int get_open_size()
     {
@@ -135,28 +148,52 @@ public:
     {
         tree.push_back(node);
         bool inserted = false;
-        for(auto it = open.begin(); it != open.end(); it++)
+        for(int k = 0; k < open.size(); k++)
         {
-            if(it->cost > node.cost || (it->cost == node.cost && (node.cons_num < it->cons_num || (node.cons_num == it->cons_num && node.conflicts_num < it->conflicts_num))))
+            if(open[k].begin()->cost == node.cost)
             {
-                open.emplace(it, Open_Elem(&tree.back(), node.cost, node.cons_num, node.conflicts_num));
+                Open_Elem elem(&tree.back(), node.cost, node.cons_num, node.conflicts_num);
+                for(auto it = open[k].begin(); it != open[k].end(); it++)
+                    if(it->conflicts_num >= elem.conflicts_num)
+                    {
+                        inserted = true;
+                        open[k].insert(it, elem);
+                        break;
+                    }
+                if(!inserted)
+                {
+                    open[k].push_back(elem);
+                    inserted = true;
+                }
+                break;
+            }
+            else if(open[k].begin()->cost > node.cost)
+            {
+                std::list<Open_Elem> open_elem = {Open_Elem(&tree.back(), node.cost, node.cons_num, node.conflicts_num)};
+                open.insert(open.begin() + k, open_elem);
                 inserted = true;
                 break;
             }
-
         }
         if(!inserted)
-            open.emplace_back(Open_Elem(&tree.back(), node.cost, node.cons_num));
+        {
+            std::list<Open_Elem> open_elem = {Open_Elem(&tree.back(), node.cost, node.cons_num, node.conflicts_num)};
+            open.push_back(open_elem);
+        }
+        open_size++;
     }
 
     CBS_Node* get_front()
     {
-        return open.begin()->tree_pointer;
+        return open[0].begin()->tree_pointer;
     }
 
     void pop_front()
     {
-        open.pop_front();
+        open[0].pop_front();
+        if(open[0].empty())
+            open.erase(open.begin());
+        open_size--;
         return;
     }
 
@@ -181,7 +218,12 @@ struct Solution
 {
     int flowtime;
     int makespan;
+    int expanded;
+    int initial_cost;
+    double ll_expanded;
+    int ll_searches;
     std::chrono::duration<double> time;
+    std::chrono::duration<double> init_time;
     std::vector<Path> paths;
     Solution(int _flowtime = -1, int _makespan = -1, std::vector<Path> _paths = {})
         : flowtime(_flowtime), makespan(_makespan), paths(_paths) {}
